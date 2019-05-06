@@ -8,7 +8,7 @@ router.get('/', (req, res) => {
 	res.send("It's alive!");
 });
 
-router.get('/api/users', (req, res) => {
+router.get('/api/users', protected, (req, res) => {
 	db
 		.find()
 		.then((users) => {
@@ -20,7 +20,7 @@ router.get('/api/users', (req, res) => {
 		});
 });
 
-router.get('/api/users/:id', (req, res) => {
+router.get('/api/users/:id', protected, (req, res) => {
 	db
 		.findByID(req.params.id)
 		.then((user) => {
@@ -36,7 +36,7 @@ router.post('/api/register', (req, res) => {
 	const newUser = req.body;
 
 	if (!newUser.hasOwnProperty('username') || !newUser.hasOwnProperty('password')) {
-		res.status(400).json({ error: 'Please provide name and password for the user.' });
+		res.status(400).json({ error: 'Please provide name and password for the user' });
 	}
 
 	const hash = bcrypt.hashSync(newUser.password, 10);
@@ -57,6 +57,42 @@ router.post('/api/register', (req, res) => {
  On successful login, create a new session for the user and send back a 'Logged in' message
  and a cookie that contains the user id.
  If login fails, respond with the correct status code and the message: 'You shall not pass!' */
-router.post('/api/login', (req, res) => {});
+router.post('/api/login', (req, res) => {
+	const { username, password } = req.body;
+	db
+		.findUserByCredent({ username })
+		.then((user) => {
+			if (user && bcrypt.compareSync(password, user.password)) {
+				res.status(200).json({ message: `Welcome ${user.username}`, userId: user.id });
+			} else {
+				res.status(401).json({ message: 'You shall not pass!' });
+			}
+		})
+		.catch((err) => {
+			res.status(500).json({ error: 'The was an error while trying to login' });
+		});
+});
+
+// mw for protected routes
+
+function protected(req, res, next) {
+	const { username, password } = req.headers;
+	if (username && password) {
+		db
+			.findUserByCredent({ username })
+			.then((user) => {
+				if (user && bcrypt.compareSync(password, user.password)) {
+					next();
+				} else {
+					res.status(401).json({ message: 'Invalid Credentials' });
+				}
+			})
+			.catch((err) => {
+				res.status(500).json({ error: 'The was an error while trying to get users info' });
+			});
+	} else {
+		res.status(400).json({ message: 'Please provide credentials' });
+	}
+}
 
 module.exports = router;

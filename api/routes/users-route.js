@@ -41,7 +41,6 @@ router.post('/api/register', (req, res) => {
 
 	const hash = bcrypt.hashSync(newUser.password, 10);
 	newUser.password = hash;
-
 	db
 		.addNewUser(newUser)
 		.then((addedUser) => {
@@ -53,10 +52,6 @@ router.post('/api/register', (req, res) => {
 		});
 });
 
-/*Use the credentials sent inside the body to authenticate the user.
- On successful login, create a new session for the user and send back a 'Logged in' message
- and a cookie that contains the user id.
- If login fails, respond with the correct status code and the message: 'You shall not pass!' */
 router.post('/api/login', (req, res) => {
 	const { username, password } = req.body;
 	db
